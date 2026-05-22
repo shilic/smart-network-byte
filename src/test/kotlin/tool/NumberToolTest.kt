@@ -38,46 +38,35 @@ class NumberToolTest {
 
     // ==================== Int.to32Bits ====================
 
-    @Test fun `Int to32Bits Intel`() {
-        val bits = 1.to32Bits(DataType.Intel)
-        assertEquals(32, bits.size, "应返回 32 个元素")
-        assertEquals(1, bits[0], "最低位应为 1")
-        assertEquals(0, bits[31], "最高位应为 0")
-    }
+    @Test fun `Int to32Bits Intel`() =
+        assertContentEquals(byteArrayOf(
+            1, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ), 1.to32Bits(DataType.Intel), "1 的 Intel 32 bits 应仅 bit0=1")
 
-    @Test fun `Int to32Bits Motorola`() {
-        val bits = 1.to32Bits(DataType.Motorola)
-        assertEquals(32, bits.size, "应返回 32 个元素")
-        assertEquals(1, bits[31], "Motorola 最低位在最高索引")
-    }
-    @Test fun `Int to32Bits Intel 2`() {
-        val bits = 14.to32Bits(DataType.Intel)
+    @Test fun `Int to32Bits Motorola`() =
+        assertContentEquals(byteArrayOf(
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 1
+        ), 1.to32Bits(DataType.Motorola), "1 的 Motorola 32 bits 应仅 bit31=1")
+    @Test fun `Int to32Bits Intel 2`() =
         assertContentEquals(byteArrayOf(
             0, 1, 1, 1, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0
-        ), bits,
-            "14 的 Intel 定长 32 bits 应为:\n { 0, 1, 1, 1, 0, 0, 0, 0,\n" +
-                    "   0, 0, 0, 0, 0, 0, 0, 0,\n" +
-                    "   0, 0, 0, 0, 0, 0, 0, 0,\n" +
-                    "   0, 0, 0, 0, 0, 0, 0, 0}\n")
-
-    }
-    @Test fun `Int to32Bits Motorola 2`() {
-        val bits = 14.to32Bits(DataType.Motorola)
+        ), 14.to32Bits(DataType.Intel), "14 的 Intel 32 bits 应仅低4位=1")
+    @Test fun `Int to32Bits Motorola 2`() =
         assertContentEquals(byteArrayOf(
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 1, 1, 1, 0
-        ), bits,
-            "14 的 Intel 定长 32 bits 应为:\n { 0, 0, 0, 0, 0, 0, 0, 0,\n" +
-                    "   0, 0, 0, 0, 0, 0, 0, 0,\n" +
-                    "   0, 0, 0, 0, 0, 0, 0, 0,\n" +
-                    "   0, 0, 0, 0, 1, 1, 1, 0}\n")
-
-    }
+        ), 14.to32Bits(DataType.Motorola), "14 的 Motorola 32 bits 应高4位=1")
     // ==================== Int.toBytesI ====================
 
     @Test fun `Int toBytesI Intel`() =
@@ -130,32 +119,34 @@ class NumberToolTest {
             "Motorola 应高位在前")
 
     // ==================== Long.toBytes ====================
-    @Test fun `Long toBytes Intel`() {
-        val result = 0x0102_0304_0506_0708L.toBytes(DataType.Intel, 8)
-        assertEquals(8, result.size, "应返回 8 个元素")
-        assertEquals(0x08.toByte(), result[0], "Intel 最低字节在前")
-    }
+    @Test fun `Long toBytes Intel`() =
+        assertContentEquals(
+            byteArrayOf(
+                0x08.toByte(), 0x07.toByte(), 0x06.toByte(), 0x05.toByte(),
+                0x04.toByte(), 0x03.toByte(), 0x02.toByte(), 0x01.toByte()),
+            0x0102_0304_0506_0708L.toBytes(DataType.Intel, 8),
+            "Intel 应低位在前，最低字节 0x08 在索引0")
 
-    @Test fun `Long toBytes Motorola`() {
-        val result = 0x0102_0304_0506_0708L.toBytes(DataType.Motorola, 8)
-        assertEquals(0x01.toByte(), result[0], "Motorola 最高字节在前")
-    }
-    @Test fun `Long toBytes Intel 2`() {
-        val result = 0x0000_0304_0506_0708L.toBytes(DataType.Intel)
+    @Test fun `Long toBytes Motorola`() =
         assertContentEquals(
-            byteArrayOf(0x08.toByte(), 0x07.toByte(), 0x06.toByte(), 0x05.toByte(), 0x04.toByte(), 0x03.toByte()),
-            result,
+            byteArrayOf(
+                0x01.toByte(), 0x02.toByte(), 0x03.toByte(), 0x04.toByte(),
+                0x05.toByte(), 0x06.toByte(), 0x07.toByte(), 0x08.toByte()),
+            0x0102_0304_0506_0708L.toBytes(DataType.Motorola, 8),
+            "Motorola 应高位在前，最高字节 0x01 在索引0")
+    @Test fun `Long toBytes Intel 2`() =
+        assertContentEquals(
+            byteArrayOf(
+                0x08.toByte(), 0x07.toByte(), 0x06.toByte(), 0x05.toByte(), 0x04.toByte(), 0x03.toByte()),
+            0x0000_0304_0506_0708L.toBytes(DataType.Intel),
             "0x0000_0304_0506_0708L toBytes Intel")
-        assertEquals(6, result.size, "应返回 6 个元素")
-    }
-    @Test fun `Long toBytes Motorola 2`() {
-        val result = 0x0000_0304_0506_0708L.toBytes(DataType.Motorola)
+
+    @Test fun `Long toBytes Motorola 2`() =
         assertContentEquals(
-            byteArrayOf(0x03.toByte(), 0x04.toByte(), 0x05.toByte(), 0x06.toByte(), 0x07.toByte(), 0x08.toByte()),
-            result,
+            byteArrayOf(
+                0x03.toByte(), 0x04.toByte(), 0x05.toByte(), 0x06.toByte(), 0x07.toByte(), 0x08.toByte()),
+            0x0000_0304_0506_0708L.toBytes(DataType.Motorola),
             "0x0000_0304_0506_0708L toBytes Motorola")
-        assertEquals(6, result.size, "应返回 6 个元素")
-    }
 
     // ==================== Int.effectiveByteCount =====================
     @Test fun `Int effectiveByteCount`() =
@@ -172,16 +163,11 @@ class NumberToolTest {
         assertEquals(0, 0L.effectiveByteCount(), "0 的有效字节数为 0")
 
     // ==================== Byte.to8Bits ====================
-    @Test fun `Byte to8Bits Intel`() {
-        val bits = 14.toByte().to8Bits(DataType.Intel)
-        assertEquals(8, bits.size)
-        assertContentEquals(byteArrayOf(0, 1, 1, 1, 0, 0, 0, 0), bits, "Intel 应低位在前")
-    }
+    @Test fun `Byte to8Bits Intel`() =
+        assertContentEquals(byteArrayOf(0, 1, 1, 1, 0, 0, 0, 0), 14.toByte().to8Bits(DataType.Intel), "Intel 应低位在前")
 
-    @Test fun `Byte to8Bits Motorola`() {
-        val bits = 14.toByte().to8Bits(DataType.Motorola)
-        assertContentEquals(byteArrayOf(0, 0, 0, 0, 1, 1, 1, 0), bits, "Motorola 应高位在前")
-    }
+    @Test fun `Byte to8Bits Motorola`() =
+        assertContentEquals(byteArrayOf(0, 0, 0, 0, 1, 1, 1, 0), 14.toByte().to8Bits(DataType.Motorola), "Motorola 应高位在前")
 
     // ==================== Byte.toBits ====================
 
@@ -202,40 +188,50 @@ class NumberToolTest {
 
     // ==================== ByteArray?.toBitsSafe ====================
 
-    @Test fun `ByteArray toBitsSafe valid`() {
-        val result = byteArrayOf(0xFF.toByte()).toBitsSafe()
-        assertEquals(8, result.size)
-        assertEquals(1, result[0])
-    }
+    @Test fun `ByteArray toBitsSafe valid`() =
+        assertContentEquals(byteArrayOf(1, 1, 1, 1, 1, 1, 1, 1),
+            byteArrayOf(0xFF.toByte()).toBitsSafe(),
+            "0xFF toBitsSafe 应为 8 个 1")
 
     @Test fun `ByteArray toBitsSafe null`() =
-        assertEquals(1, (null as ByteArray?).toBitsSafe().size,
+        assertContentEquals(byteArrayOf(0), (null as ByteArray?).toBitsSafe(),
             "null 应返回默认长度 1 的全零数组")
 
-    @Test fun `ByteArray toBitsSafe with length`() {
-        val result = byteArrayOf(0x01.toByte()).toBitsSafe(bitLength = 4)
-        assertEquals(4, result.size, "指定 bitLength=4 应只返回 4 个元素")
-    }
-    @Test fun `ByteArray toBitsSafe 0`() {
-        val result = byteArrayOf(0x00.toByte()).toBitsSafe()
-        assertEquals(8, result.size, "默认长度 8 的全零数组")
-    }
+    @Test fun `ByteArray toBitsSafe with length`() =
+        assertContentEquals(byteArrayOf(1, 0, 0, 0),
+            byteArrayOf(0x01.toByte()).toBitsSafe(bitLength = 4),
+            "0x01 取前4位应仅 bit0=1")
+
+    @Test fun `ByteArray toBitsSafe 0`() =
+        assertContentEquals(byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0),
+            byteArrayOf(0x00.toByte()).toBitsSafe(),
+            "0x00 toBitsSafe 应为 8 个 0")
 
     // ==================== ByteArray.from4BytesTo32Bits ====================
 
-    @Test fun `from4BytesTo32Bits Intel`() {
-        val bits = byteArrayOf(0x01.toByte(), 0, 0, 0).from4BytesTo32Bits(DataType.Intel)
-        assertEquals(32, bits.size)
-        assertEquals(1, bits[0], "0x01 的 bit0 应为 1")
-    }
+    @Test fun `from4BytesTo32Bits Intel`() =
+        assertContentEquals(byteArrayOf(
+            1, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ), byteArrayOf(0x01.toByte(), 0, 0, 0).from4BytesTo32Bits(DataType.Intel),
+            "0x01 的 Intel 32 bits 应仅 bit0=1")
 
     // ==================== ByteArray.from8BytesTo64Bits ====================
 
-    @Test fun `from8BytesTo64Bits Intel`() {
-        val bits = byteArrayOf(0xFF.toByte(), 0,0,0,0,0,0,0).from8BytesTo64Bits()
-        assertEquals(64, bits.size)
-        assertEquals(1, bits[0], "0xFF 第一个 bit 应为 1")
-    }
+    @Test fun `from8BytesTo64Bits Intel`() =
+        assertContentEquals(byteArrayOf(
+            1, 1, 1, 1, 1, 1, 1, 1,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ), byteArrayOf(0xFF.toByte(), 0,0,0,0,0,0,0).from8BytesTo64Bits(),
+            "0xFF 的 Intel 64 bits 前8位应为1")
 
     // ==================== ByteArray.bitsToInt ====================
 
@@ -276,33 +272,32 @@ class NumberToolTest {
 
     @Test fun from64bitsTo8IntArrayTest() {
         val bits = ByteArray(64).also { for (i in 0 until 8) it[i] = 1 }
-        val result = bits.from64bitsTo8IntArray(DataType.Intel)
-        assertEquals(8, result.size, "应返回 8 个 Int")
-        assertEquals(0xFF, result[0], "第一个 byte 应为 0xFF")
+        assertContentEquals(intArrayOf(0xFF, 0, 0, 0, 0, 0, 0, 0),
+            bits.from64bitsTo8IntArray(DataType.Intel),
+            "前8位为1，第一个 byte 应为 0xFF")
     }
 
     // ==================== ByteArray.from64bitsTo8Bytes ====================
 
     @Test fun from64bitsTo8Bytes() {
         val bits = ByteArray(64).also { for (i in 0 until 8) it[i] = 1 }
-        val result = bits.from64bitsTo8ByteArray(DataType.Intel)
-        assertEquals(8, result.size, "应返回 8 个 Byte")
-        assertEquals(0xFF.toByte(), result[0], "第一个 byte 应为 0xFF")
+        assertContentEquals(byteArrayOf(0xFF.toByte(), 0, 0, 0, 0, 0, 0, 0),
+            bits.from64bitsTo8ByteArray(DataType.Intel),
+            "前8位为1，第一个 byte 应为 0xFF")
     }
 
     // ==================== ByteArray.bitsToBytes ====================
 
     @Test fun `bitsToBytes exact`() {
         val bits = ByteArray(8) { 1 }
-        val result = bits.bitsToBytes(DataType.Intel)
-        assertEquals(1, result.size, "8 bits = 1 byte")
-        assertEquals(0xFF.toByte(), result[0], "全1 -> 0xFF")
+        assertContentEquals(byteArrayOf(0xFF.toByte()), bits.bitsToBytes(DataType.Intel),
+            "8 个 1 -> 0xFF")
     }
 
     @Test fun `bitsToBytes padded`() {
         val bits = ByteArray(5) { 1 }
-        val result = bits.bitsToBytes(DataType.Intel)
-        assertEquals(1, result.size, "5 bits 补零后 = 1 byte")
+        assertContentEquals(byteArrayOf(0x1F.toByte()), bits.bitsToBytes(DataType.Intel),
+            "5 个 1 补零 -> 0x1F")
     }
 
     // ==================== ByteArray.from4BytesToInt ====================
