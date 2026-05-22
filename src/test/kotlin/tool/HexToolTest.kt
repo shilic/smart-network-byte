@@ -1,6 +1,8 @@
 package tool
 
-import numberUtils.*
+import io.github.shilic.numberUtils.toCompactHexStr
+import io.github.shilic.numberUtils.toHex8
+import io.github.shilic.numberUtils.toHexStr
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

@@ -1,4 +1,4 @@
-package numberUtils
+package io.github.shilic.numberUtils
 
 import kotlin.collections.isEmpty
 import kotlin.collections.joinToString
