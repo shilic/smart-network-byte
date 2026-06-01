@@ -12,7 +12,7 @@ plugins {
     `maven-publish`
 }
 group = "io.github.shilic"
-version = "1.0.1"
+version = "1.0.2"
 
 repositories {
     mavenCentral()

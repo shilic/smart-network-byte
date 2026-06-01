@@ -13,14 +13,13 @@ import io.github.shilic.numberUtils.from4BytesToLong
 import io.github.shilic.numberUtils.from64bitsTo8ByteArray
 import io.github.shilic.numberUtils.from64bitsTo8IntArray
 import io.github.shilic.numberUtils.from8BytesTo64Bits
-import io.github.shilic.numberUtils.from8bitsToByte
-import io.github.shilic.numberUtils.from8bitsToInt
+import io.github.shilic.numberUtils.bits8ToByte
+import io.github.shilic.numberUtils.bits8ToInt
 import io.github.shilic.numberUtils.to32Bits
 import io.github.shilic.numberUtils.to4Bytes
 import io.github.shilic.numberUtils.to8Bits
 import io.github.shilic.numberUtils.toBits
-import io.github.shilic.numberUtils.toBitsSafe
-import io.github.shilic.numberUtils.toBytePadded
+import io.github.shilic.numberUtils.bitsToByte
 import io.github.shilic.numberUtils.toBytes
 import io.github.shilic.numberUtils.toBytesI
 import io.github.shilic.numberUtils.toIntWithLower
@@ -213,22 +212,45 @@ class NumberToolTest {
 
     @Test fun `ByteArray toBitsSafe valid`() =
         assertContentEquals(byteArrayOf(1, 1, 1, 1, 1, 1, 1, 1),
-            byteArrayOf(0xFF.toByte()).toBitsSafe(),
+            byteArrayOf(0xFF.toByte()).toBits(),
             "0xFF toBitsSafe 应为 8 个 1")
 
-    @Test fun `ByteArray toBitsSafe null`() =
-        assertContentEquals(byteArrayOf(0), (null as ByteArray?).toBitsSafe(),
-            "null 应返回默认长度 1 的全零数组")
+//    @Test fun `ByteArray toBitsSafe null`() =
+//        assertContentEquals(byteArrayOf(0), (null as ByteArray?).toBits(),
+//            "null 应返回默认长度 1 的全零数组")
 
     @Test fun `ByteArray toBitsSafe with length`() =
         assertContentEquals(byteArrayOf(1, 0, 0, 0),
-            byteArrayOf(0x01.toByte()).toBitsSafe(bitLength = 4),
+            byteArrayOf(0x01.toByte()).toBits(bitLength = 4),
             "0x01 取前4位应仅 bit0=1")
 
     @Test fun `ByteArray toBitsSafe 0`() =
         assertContentEquals(byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0),
-            byteArrayOf(0x00.toByte()).toBitsSafe(),
+            byteArrayOf(0x00.toByte()).toBits(),
             "0x00 toBitsSafe 应为 8 个 0")
+    @Test fun `ByteArray toBits`() {
+        val input = byteArrayOf(0xAB.toByte(), 0x01.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x00.toByte(), 0x01.toByte(), 0x02.toByte(), 0x03.toByte())
+        val expected = byteArrayOf (
+            // 0xAB 的 英特尔格式；摩托罗拉格式为： 1, 0, 1, 0, 1, 0, 1, 1,
+            1, 1, 0, 1, 0, 1, 0, 1,
+            1, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+
+            0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0, 0, 0, 0,
+            1, 1, 0, 0, 0, 0, 0, 0
+        )
+        val output = input.toBits()
+        assertContentEquals(
+            expected,
+            output,
+            "toBits 函数测试")
+    }
+
+
 
     // ==================== ByteArray.from4BytesTo32Bits ====================
 
@@ -261,28 +283,51 @@ class NumberToolTest {
     @Test fun `bitsToInt Intel`() =
         assertEquals(15, byteArrayOf(1,1,1,1).bitsToInt(DataType.Intel),
             "Intel {1,1,1,1} -> 15")
-
+    @Test fun `bitsToInt Intel2`() {
+        val input = byteArrayOf(
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            1,1,0,1,0,0,0,0,
+            1,1,0,1,0,1,0,1,
+        )
+        val output = input.bitsToInt()
+        val expected :  Int = (0xAB0B_0000).toInt()
+        assertEquals(
+            expected,
+            // 0xAB 的 英特尔格式；摩托罗拉格式为： 1, 0, 1, 0, 1, 0, 1, 1,
+            output,
+            "bits Intel -> 0xABAB_0000")
+    }
     @Test fun `bitsToInt Motorola`() =
         assertEquals(15, byteArrayOf(1,1,1,1).bitsToInt(DataType.Motorola),
             "Motorola {1,1,1,1} -> 15")
 
     // ==================== ByteArray.from8bitsToInt ====================
 
-    @Test fun `from8bitsToInt Intel`() =
-        assertEquals(0xFF, byteArrayOf(1,1,1,1,1,1,1,1).from8bitsToInt(DataType.Intel),
-            "全1 8bits Intel -> 0xFF")
+    @Test fun `from8bitsToInt Intel 2`() =
+        assertEquals(0xAB, byteArrayOf(1,1,0,1,0,1,0,1).bits8ToInt(DataType.Intel),
+            "全1 8bits Intel -> 0xAB")
 
     // ==================== ByteArray.from8bitsToByte ====================
 
     @Test fun `from8bitsToByte Intel`() =
-        assertEquals(0xAB.toByte(), byteArrayOf(1,1,0,1,0,1,0,1).from8bitsToByte(DataType.Intel),
+        assertEquals(0xAB.toByte(), byteArrayOf(1,1,0,1,0,1,0,1).bits8ToByte(DataType.Intel),
             "8bits Intel -> 0xAB")
 
     // ==================== ByteArray.toBytePadded ====================
 
     @Test fun `toBytePadded short bits`() =
-        assertEquals(3.toByte(), byteArrayOf(1,1).toBytePadded(DataType.Intel),
+        assertEquals(3.toByte(), byteArrayOf(1,1).bitsToByte(DataType.Intel),
             "{1,1} 补零后应等于 3")
+    @Test fun `toBytePadded short bits2`() {
+        assertEquals(10.toByte(), byteArrayOf(0,1,0,1).bitsToByte(DataType.Intel),
+            "{0,1,0,1} 补零后应等于 10")
+    }
+    @Test fun `toBytePadded short bits3`() {
+        assertEquals(10.toByte(), byteArrayOf(0,1,0,1).bitsToInt().toByte(),
+            "{0,1,0,1} 补零后应等于 10")
+    }
+
 
     // ==================== ByteArray.from32bitsToInt ====================
 

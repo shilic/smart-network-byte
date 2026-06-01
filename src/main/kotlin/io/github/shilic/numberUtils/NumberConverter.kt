@@ -78,9 +78,16 @@ fun Byte.to8Bits(type: DataType = DataType.Intel): ByteArray {
     }
 }
 // ===================================== bytes -> bits =======================================
-/** 将任意长度 Byte 数组转换为 bits 数组。bitLength=-1 表示自动计算 */
-fun ByteArray?.toBitsSafe(type: DataType = DataType.Intel, bitLength: Int = -1): ByteArray {
-    if (this == null) return ByteArray(if (bitLength > 0) bitLength else 1)
+
+/** 将任意长度 Byte 数组转换为 bits 数组。
+ *
+ * bitLength = -1 表示自动计算, 长度为 byte 个数乘以 8
+ *
+ * 这里只建议英特尔格式
+ *
+ * */
+fun ByteArray.toBits(type: DataType = DataType.Intel, bitLength: Int = -1): ByteArray {
+    //if (this == null) return ByteArray(if (bitLength > 0) bitLength else 1)
     val actualLen = if (bitLength == -1) size * 8 else bitLength
     val bits = ByteArray(actualLen)
     var currentIndex = 0
@@ -115,7 +122,23 @@ fun ByteArray.from8BytesTo64Bits(type: DataType = DataType.Intel): ByteArray {
 
 // ============================================ 小转大 =========================================
 
-/** 任意长度 (<=32)  bits 转 Int */
+// -------------------------------------------- bits 转 数值 ------------------------------------------
+/** 任意长度 (<=64)  bits 转 Long
+ *
+ * 这里只建议英特尔格式
+ * */
+fun ByteArray.bitsToLong(type: DataType = DataType.Intel): Long {
+    var re = 0L
+    when (type) {
+        DataType.Intel -> for (i in lastIndex downTo 0) re = (re shl 1) or ((this[i].toInt() and 1).toLong())
+        DataType.Motorola -> for (b in this) re = (re shl 1) or ((b.toInt() and 1).toLong())
+    }
+    return re
+}
+/** 任意长度 (<=32)  bits 转 Int
+ *
+ * 这里只建议英特尔格式
+ * */
 fun ByteArray.bitsToInt(type: DataType = DataType.Intel): Int {
     var re = 0
     when (type) {
@@ -124,9 +147,19 @@ fun ByteArray.bitsToInt(type: DataType = DataType.Intel): Int {
     }
     return re
 }
+/** <8 bits 转 Byte（自动补零到8位）
+ *
+ * 这里只建议英特尔格式
+ * */
+fun ByteArray.bitsToByte(type: DataType = DataType.Intel): Byte {
+    return this.bitsToInt(type).toByte()
+}
 
-/** 8 bits -> Int 表示的 byte */
-fun ByteArray.from8bitsToInt(type: DataType = DataType.Intel): Int {
+// --------------------------------------- 固定长度 bits 转 数值 ------------------------------------------
+/** 8 bits -> Int 表示的 byte
+ *
+ * 这里只建议英特尔格式*/
+fun ByteArray.bits8ToInt(type: DataType = DataType.Intel): Int {
     var b = 0
     when (type) {
         DataType.Intel -> for (i in 7 downTo 0) b = (b shl 1) or this[i].toInt()
@@ -135,18 +168,13 @@ fun ByteArray.from8bitsToInt(type: DataType = DataType.Intel): Int {
     return b
 }
 
-/** 8 bits 转 Byte */
-fun ByteArray.from8bitsToByte(type: DataType = DataType.Intel): Byte {
-    return from8bitsToInt(type).toByte()
+/** 8 bits 转 Byte
+ *
+ * 这里只建议英特尔格式
+ * */
+fun ByteArray.bits8ToByte(type: DataType = DataType.Intel): Byte {
+    return bits8ToInt(type).toByte()
 }
-
-/** <8 bits 转 Byte（自动补零到8位） */
-fun ByteArray.toBytePadded(type: DataType = DataType.Intel): Byte {
-    val padded = ByteArray(8)
-    copyInto(padded)
-    return padded.from8bitsToByte(type)
-}
-
 /** 32 bits -> Int */
 fun ByteArray.from32bitsToInt(type: DataType = DataType.Intel): Int {
     var re = 0
@@ -157,25 +185,26 @@ fun ByteArray.from32bitsToInt(type: DataType = DataType.Intel): Int {
     return re
 }
 
-/** 64 bits -> 8 位 Int 数组 */
+// -------------------------------------------- bits 转 数组 ------------------------------------------
+/** 64 bits -> 8 位 Int 数组; 这里只建议英特尔格式 */
 fun ByteArray.from64bitsTo8IntArray(type: DataType = DataType.Intel): IntArray =
-    IntArray(8) { copyOfRange(it * 8, it * 8 + 8).from8bitsToInt(type) }
+    IntArray(8) { copyOfRange(it * 8, it * 8 + 8).bits8ToInt(type) }
 
-/** 64 bits -> 8 位 Byte 数组 */
+/** 64 bits -> 8 位 Byte 数组; 这里只建议英特尔格式 */
 fun ByteArray.from64bitsTo8ByteArray(type: DataType = DataType.Intel): ByteArray =
-    ByteArray(8) { copyOfRange(it * 8, it * 8 + 8).from8bitsToByte(type) }
+    ByteArray(8) { copyOfRange(it * 8, it * 8 + 8).bits8ToByte(type) }
 
 /** bits 转 bytes（不足8的倍数补零） */
 fun ByteArray.bitsToBytes(type: DataType = DataType.Intel): ByteArray {
-    val pad = (8 - size % 8) % 8
-    val padded = if (pad != 0) ByteArray(size + pad).also { copyInto(it) } else copyOf()
+    val pad: Int = (8 - size % 8) % 8
+    val padded: ByteArray = if (pad != 0) ByteArray(size + pad).also { copyInto(it) } else copyOf()
     return ByteArray(padded.size / 8) { i ->
-        padded.copyOfRange(i * 8, i * 8 + 8).from8bitsToByte(type)
+        padded.copyOfRange(i * 8, i * 8 + 8).bits8ToByte(type)
     }
 }
 
 // ========================================== bytes -> int/long ===============================
-/** 任意长度 Byte 数组转 Int */
+/** 长度<=4 Byte 数组转 Int */
 fun ByteArray.bytesToInt(type: DataType = DataType.Intel): Int {
     var ans = 0
     when (type) {
@@ -185,7 +214,7 @@ fun ByteArray.bytesToInt(type: DataType = DataType.Intel): Int {
     return ans
 }
 
-/** 任意长度 Byte 数组转 Long */
+/** 长度<=8 Byte 数组转 Long */
 fun ByteArray.bytesToLong(type: DataType = DataType.Intel): Long {
     var ans = 0L
     when (type) {
