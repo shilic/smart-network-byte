@@ -1,10 +1,6 @@
 import java.util.Properties
 import kotlin.apply
 
-/* 从 GRADLE_USER_HOME 读取全局 gradle.properties (存放 git 凭证) !!! 不要把密钥放到仓库里上传到 github */
-val globalProps: Properties = Properties().apply {
-    gradle.gradleUserHomeDir.resolve("gradle.properties").takeIf(File::exists)?.reader()?.use(::load)
-}
 plugins {
     kotlin("jvm") version "2.2.0"
     /* 对应 publishing 节点; 使用传统方式发布软件包 */
@@ -19,12 +15,13 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.36.0"
 }
 /* ======================= 填写个人信息 ============================= */
+/** 从 settings.gradle.kts 文件取值过来 */
 val artifactId: String = rootProject.name
-// 组织机构的名称必须是  io.github.你的github名称，除非你有你自己的域名，maven中心会校验你是否拥有这个域名，否则一律挂到github下
+/* 组织机构的名称必须是 io.github.<你的github名称>，除非你有你自己的域名; maven中心会校验你是否拥有这个域名，否则一律挂到 github 下 */
 group = "io.github.shilic"
-// 版本号  !!! 严禁 -SNAPSHOT
+/* 版本号  !!! 严禁 -SNAPSHOT */
 version = "1.0.0"
-/** */
+/** 提取个人的链接，方便统一修改 */
 val myGit: String = "github.com/shilic/smart-network-byte"
 /** 复用我的POM */
 val myPom: MavenPom.() -> Unit = {
@@ -50,58 +47,54 @@ val myPom: MavenPom.() -> Unit = {
         developerConnection = "scm:git:ssh://$myGit.git"
     }
 }
-
 // 定义仓库，构建脚本会从这里拉取依赖
 repositories {
     mavenCentral()
 }
-/* maven中央仓库规定，必须携带源码包和文档包 */
-/* com.vanniktech.maven.publish 插件内部已经自动处理了源码包和文档包，不需要你再手动声明 java { withSourcesJar(); withJavadocJar() } */
-/* 使用 publishing 发布内容 (需要先使用 `maven-publish` 插件，同步一下 gradle 更改才不会语法报错) */
-publishing {
-    /* 定义一个标准的发布内容
-     * 一个项目可以定义多个发布内容 (Multiple Publications)，例如发布不同的构件或为不同的用途提供不同的元数据。
-     * 例如: 基本的jar(可调用代码)、 源码(可深入源码DEBUG)、 java-docs(可查看文档)  */
-    publications {
-        /* 定义发布内容的名称，可以任意定义; 名称和 sign(publishing.publications["xxx"]) 一致 */
-        /* 名字不能取 maven ，会和 com.vanniktech.maven.publish 插件 重复 */
-        create<MavenPublication>("myMaven") {
-            from(components["java"])
-            pom(myPom)
-        }
-    }
-    // 9. 定义将要发布的远程仓库（发布到哪里？）
-    repositories {
-        // 发布到 GitHubPackages
-        maven {
-            // 仓库名称 (固定参数 GitHubPackages, 不可变动 ; 该存储库指向 GitHub Packages)
-            name = "GitHubPackages"
-            // 仓库 github URL
-            url = uri("https://maven.pkg.github.com/shilic/smart-network-byte")
-            // 设置仓库凭证
-            credentials {
-                // 使用推荐的写法，从 GRADLE_USER_HOME 读取全局 gradle.properties (存放 git 凭证)
-                username = globalProps.getProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: ""
-                password = globalProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
-            }
-        }
-    }
-}
-// /* 方式 B：CI 友好，把私钥整个导出来走内存（推荐） */
-signing {
-    val key = globalProps.getProperty("signingInMemoryKey") ?: System.getenv("GPG_PRIVATE_KEY")
-    val password = globalProps.getProperty("signingInMemoryKeyPassword") ?: System.getenv("GPG_PASSPHRASE")
-    if (key != null) {
-        useInMemoryPgpKeys(null, key, password)
-    }
-    sign(publishing.publications["myMaven"])
-}
-/* 使用 mavenPublishing 节点发布软件包，需要先使用  id("com.vanniktech.maven.publish") 插件 */
+/* 使用 mavenPublishing 发布到 Maven Central，签名、源码包、文档包均由插件自动处理 */
 mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
     coordinates(group.toString(), artifactId, version.toString())
     pom(myPom)
+}
+/* 追加 GitHubPackages 发布目标; com.vanniktech.maven.publish 插件 已经打包了发布内容，所以这里只需要追加远程仓库。 */
+afterEvaluate {
+    /* 从 GRADLE_USER_HOME 读取全局 gradle.properties (存放 git 凭证) !!! 不要把密钥放到仓库里上传到 github */
+    val globalProps: Properties = Properties().apply {
+        gradle.gradleUserHomeDir.resolve("gradle.properties")
+            .takeIf(File::exists)?.reader()?.use(::load)
+    }
+    publishing {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/shilic/${artifactId}")
+                credentials {
+                    username = globalProps.getProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: ""
+                    password = globalProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
+                }
+            }
+            /*  // 使用 Gitea 自建的远程仓库
+             maven {
+                 // 使用 Gitea 自建的远程仓库，名称强制指定为 Gitea
+                 name = "Gitea"
+                 url = uri("http://你的内网网址:你的端口号/api/packages/你的gitea名/maven")
+                 // http 链接需要强制使用 isAllowInsecureProtocol = true
+                 isAllowInsecureProtocol = true
+                 // 设置仓库凭证
+                 credentials(HttpHeaderCredentials::class) {
+                     // Gitea 规定，名称强制为 Authorization
+                     name = "Authorization"
+                     // Gitea 的个人访问令牌和 github 类似，到网站上自己去生成一个。
+                     value = "token ${globalProps.getProperty("gitea.token")}"
+                 }
+                 // 以下代码为固定的
+                 authentication {create("header", HttpHeaderAuthentication::class)}
+             }
+             */
+        }
+    }
 }
 // 项目依赖
 dependencies {
