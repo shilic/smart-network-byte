@@ -53,40 +53,37 @@ repositories {
     mavenCentral()
 }
 /* maven中央仓库规定，必须携带源码包和文档包 */
-//java {
-//    withSourcesJar()
-//    withJavadocJar()
-//}
 /* com.vanniktech.maven.publish 插件内部已经自动处理了源码包和文档包，不需要你再手动声明 java { withSourcesJar(); withJavadocJar() } */
 /* 使用 publishing 发布内容 (需要先使用 `maven-publish` 插件，同步一下 gradle 更改才不会语法报错) */
-publishing {
-    /* 定义一个标准的发布内容
-     * 一个项目可以定义多个发布内容 (Multiple Publications)，例如发布不同的构件或为不同的用途提供不同的元数据。
-     * 例如: 基本的jar(可调用代码)、 源码(可深入源码DEBUG)、 java-docs(可查看文档)  */
-    publications {
-        // 定义发布内容的名称，可以任意定义; 名称和 sign(publishing.publications["xxx"]) 一致
-        create<MavenPublication>("myMaven") {
-            from(components["java"])
-            pom(myPom)
-        }
-    }
-    // 9. 定义将要发布的远程仓库（发布到哪里？）
-    repositories {
-        // 发布到 GitHubPackages
-        maven {
-            // 仓库名称 (固定参数 GitHubPackages, 不可变动 ; 该存储库指向 GitHub Packages)
-            name = "GitHubPackages"
-            // 仓库 github URL
-            url = uri("https://maven.pkg.github.com/shilic/smart-network-byte")
-            // 设置仓库凭证
-            credentials {
-                // 使用推荐的写法，从 GRADLE_USER_HOME 读取全局 gradle.properties (存放 git 凭证)
-                username = globalProps.getProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: ""
-                password = globalProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
-            }
-        }
-    }
-}
+//publishing {
+//    /* 定义一个标准的发布内容
+//     * 一个项目可以定义多个发布内容 (Multiple Publications)，例如发布不同的构件或为不同的用途提供不同的元数据。
+//     * 例如: 基本的jar(可调用代码)、 源码(可深入源码DEBUG)、 java-docs(可查看文档)  */
+//    publications {
+//        // 定义发布内容的名称，可以任意定义; 名称和 sign(publishing.publications["xxx"]) 一致
+//        create<MavenPublication>("myMaven") {
+//            from(components["java"])
+//            pom(myPom)
+//        }
+//    }
+//    // 9. 定义将要发布的远程仓库（发布到哪里？）
+//    repositories {
+//        // 发布到 GitHubPackages
+//        maven {
+//            // 仓库名称 (固定参数 GitHubPackages, 不可变动 ; 该存储库指向 GitHub Packages)
+//            name = "GitHubPackages"
+//            // 仓库 github URL
+//            url = uri("https://maven.pkg.github.com/shilic/smart-network-byte")
+//            // 设置仓库凭证
+//            credentials {
+//                // 使用推荐的写法，从 GRADLE_USER_HOME 读取全局 gradle.properties (存放 git 凭证)
+//                username = globalProps.getProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: ""
+//                password = globalProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
+//            }
+//        }
+//    }
+//}
+
 /* 使用 mavenPublishing 节点发布软件包，需要先使用  id("com.vanniktech.maven.publish") 插件 */
 mavenPublishing {
     publishToMavenCentral()
