@@ -9,6 +9,8 @@ plugins {
     kotlin("jvm") version "2.2.0"
     /* 对应 publishing 节点; 使用传统方式发布软件包 */
     `maven-publish`
+    // 添加原生签名插件，用于GPG签名
+    signing
     /* 使用社区插件 com.vanniktech.maven.publish 发布软件包:
     * JVM : 必须 17 以上 (在项目结构中修改SDK级别, 不是修改语言级别)，
     * Kotlin : 2.2.0以上；
@@ -22,8 +24,9 @@ val artifactId: String = rootProject.name
 group = "io.github.shilic"
 // 版本号  !!! 严禁 -SNAPSHOT
 version = "1.0.0"
+/** */
 val myGit: String = "github.com/shilic/smart-network-byte"
-/** 我的POM */
+/** 复用我的POM */
 val myPom: MavenPom.() -> Unit = {
     name = artifactId
     description = "更聪明的网络字节转换器"
@@ -55,35 +58,44 @@ repositories {
 /* maven中央仓库规定，必须携带源码包和文档包 */
 /* com.vanniktech.maven.publish 插件内部已经自动处理了源码包和文档包，不需要你再手动声明 java { withSourcesJar(); withJavadocJar() } */
 /* 使用 publishing 发布内容 (需要先使用 `maven-publish` 插件，同步一下 gradle 更改才不会语法报错) */
-//publishing {
-//    /* 定义一个标准的发布内容
-//     * 一个项目可以定义多个发布内容 (Multiple Publications)，例如发布不同的构件或为不同的用途提供不同的元数据。
-//     * 例如: 基本的jar(可调用代码)、 源码(可深入源码DEBUG)、 java-docs(可查看文档)  */
-//    publications {
-//        // 定义发布内容的名称，可以任意定义; 名称和 sign(publishing.publications["xxx"]) 一致
-//        create<MavenPublication>("myMaven") {
-//            from(components["java"])
-//            pom(myPom)
-//        }
-//    }
-//    // 9. 定义将要发布的远程仓库（发布到哪里？）
-//    repositories {
-//        // 发布到 GitHubPackages
-//        maven {
-//            // 仓库名称 (固定参数 GitHubPackages, 不可变动 ; 该存储库指向 GitHub Packages)
-//            name = "GitHubPackages"
-//            // 仓库 github URL
-//            url = uri("https://maven.pkg.github.com/shilic/smart-network-byte")
-//            // 设置仓库凭证
-//            credentials {
-//                // 使用推荐的写法，从 GRADLE_USER_HOME 读取全局 gradle.properties (存放 git 凭证)
-//                username = globalProps.getProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: ""
-//                password = globalProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
-//            }
-//        }
-//    }
-//}
-
+publishing {
+    /* 定义一个标准的发布内容
+     * 一个项目可以定义多个发布内容 (Multiple Publications)，例如发布不同的构件或为不同的用途提供不同的元数据。
+     * 例如: 基本的jar(可调用代码)、 源码(可深入源码DEBUG)、 java-docs(可查看文档)  */
+    publications {
+        /* 定义发布内容的名称，可以任意定义; 名称和 sign(publishing.publications["xxx"]) 一致 */
+        /* 名字不能取 maven ，会和 com.vanniktech.maven.publish 插件 重复 */
+        create<MavenPublication>("myMaven") {
+            from(components["java"])
+            pom(myPom)
+        }
+    }
+    // 9. 定义将要发布的远程仓库（发布到哪里？）
+    repositories {
+        // 发布到 GitHubPackages
+        maven {
+            // 仓库名称 (固定参数 GitHubPackages, 不可变动 ; 该存储库指向 GitHub Packages)
+            name = "GitHubPackages"
+            // 仓库 github URL
+            url = uri("https://maven.pkg.github.com/shilic/smart-network-byte")
+            // 设置仓库凭证
+            credentials {
+                // 使用推荐的写法，从 GRADLE_USER_HOME 读取全局 gradle.properties (存放 git 凭证)
+                username = globalProps.getProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: ""
+                password = globalProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
+    }
+}
+// /* 方式 B：CI 友好，把私钥整个导出来走内存（推荐） */
+signing {
+    val key = globalProps.getProperty("signingInMemoryKey") ?: System.getenv("GPG_PRIVATE_KEY")
+    val password = globalProps.getProperty("signingInMemoryKeyPassword") ?: System.getenv("GPG_PASSPHRASE")
+    if (key != null) {
+        useInMemoryPgpKeys(null, key, password)
+    }
+    sign(publishing.publications["myMaven"])
+}
 /* 使用 mavenPublishing 节点发布软件包，需要先使用  id("com.vanniktech.maven.publish") 插件 */
 mavenPublishing {
     publishToMavenCentral()
