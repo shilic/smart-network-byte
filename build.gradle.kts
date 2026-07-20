@@ -15,12 +15,14 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.36.0"
 }
 /* ======================= 填写个人信息 ============================= */
+val githubUser = "shilic"
+/* 版本号  !!! 严禁 -SNAPSHOT */
+version = "1.0.0"
+
 /** 从 settings.gradle.kts 文件取值过来 */
 val artifactId: String = rootProject.name
 /* 组织机构的名称必须是 io.github.<你的github名称>，除非你有你自己的域名; maven中心会校验你是否拥有这个域名，否则一律挂到 github 下 */
-group = "io.github.shilic"
-/* 版本号  !!! 严禁 -SNAPSHOT */
-version = "1.0.0"
+group = "io.github.$githubUser"
 /** 提取个人的链接，方便统一修改 */
 val myGit: String = "github.com/shilic/$artifactId"
 /** 复用我的POM */
@@ -69,30 +71,12 @@ afterEvaluate {
         repositories {
             maven {
                 name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/shilic/${artifactId}")
+                url = uri("https://maven.pkg.github.com/$githubUser/${artifactId}")
                 credentials {
                     username = globalProps.getProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: ""
                     password = globalProps.getProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN") ?: ""
                 }
             }
-            /*  // 使用 Gitea 自建的远程仓库
-             maven {
-                 // 使用 Gitea 自建的远程仓库，名称强制指定为 Gitea
-                 name = "Gitea"
-                 url = uri("http://你的内网网址:你的端口号/api/packages/你的gitea名/maven")
-                 // http 链接需要强制使用 isAllowInsecureProtocol = true
-                 isAllowInsecureProtocol = true
-                 // 设置仓库凭证
-                 credentials(HttpHeaderCredentials::class) {
-                     // Gitea 规定，名称强制为 Authorization
-                     name = "Authorization"
-                     // Gitea 的个人访问令牌和 github 类似，到网站上自己去生成一个。
-                     value = "token ${globalProps.getProperty("gitea.token")}"
-                 }
-                 // 以下代码为固定的
-                 authentication {create("header", HttpHeaderAuthentication::class)}
-             }
-             */
         }
     }
 }
